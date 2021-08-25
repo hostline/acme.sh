@@ -28,6 +28,7 @@
 
 #
 # declaration et initialisation des variables globales
+DEFAULT_HOSTLINE_URL="https://api.hostline.fr"
 DEFAULT_HOSTLINE_TTL=60
 #
 
@@ -46,21 +47,18 @@ dns_hostline_add() {
   #
 
   #
-  # condition de verification de la variable HOSTLINE_Url
-  # si elle n'existe pas on retour une erreur et on sort en CR1
+  # condition de verification de la variable HOSTLINE_Ttl personnalisee
+  # si elle differente de la valeur actuelle on valorise avec la nouvelle valeur dans le fichier accound.conf
   if [ -z "$HOSTLINE_Url" ]; then
-    HOSTLINE_Url=""
-    _err "You don't specify PowerDNS address"
-    _err "Please set HOSTLINE_Url and try again"
-    return 1
+    HOSTLINE_Url="$DEFAULT_HOSTLINE_URL"
   fi
 
   #
   # condition de verification de la variable HOSTLINE_Token
-  # si elle n'existe pas on retour une erreur et on sort en CR1
+  # si elle n'existe pas on retourne une erreur et on sort en CR1
   if [ -z "$HOSTLINE_Token" ]; then
     HOSTLINE_Token=""
-    _err "You don't specify PowerDNS token"
+    _err "You don't specify HOSTLINE_Token token"
     _err "Please create you HOSTLINE_Token and try again"
     return 1
   fi
@@ -76,17 +74,12 @@ dns_hostline_add() {
   # ajout de la configuration dans le fichier account.conf
   _saveaccountconf HOSTLINE_Url "$HOSTLINE_Url"
   _saveaccountconf HOSTLINE_Token "$HOSTLINE_Token"
+  _saveaccountconf HOSTLINE_Ttl "$HOSTLINE_Ttl"
 
-  #
-  # condition de verification de la variable HOSTLINE_Ttl personnalisee
-  # si elle differente de la valeur actuelle on valorise avec la nouvelle valeur dans le fichier accound.conf
-  if [ "$HOSTLINE_Ttl" != "$DEFAULT_HOSTLINE_TTL" ]; then
-    _saveaccountconf HOSTLINE_Ttl "$HOSTLINE_Ttl"
-  fi
 
   #
   # condition de verificiation du domaine racine
-  # si le domaine n'est pas correcte on retour une erreur et on sort en CR1
+  # si le domaine n'est pas correcte on retourne une erreur et on sort en CR1
   _debug "Detect root zone"
   if ! _get_root "$fulldomain"; then
     _err "Invalid domain, please check domain and try again"
@@ -119,8 +112,39 @@ dns_hostline_rm() {
   #
  
   #
+  # condition de verification de la variable HOSTLINE_Ttl personnalisee
+  # si elle differente de la valeur actuelle on valorise avec la nouvelle valeur dans le fichier accound.conf
+  if [ -z "$HOSTLINE_Url" ]; then
+    HOSTLINE_Url="$DEFAULT_HOSTLINE_URL"
+  fi
+
+  #
+  # condition de verification de la variable HOSTLINE_Token
+  # si elle n'existe pas on retourne une erreur et on sort en CR1
+  if [ -z "$HOSTLINE_Token" ]; then
+    HOSTLINE_Token=""
+    _err "You don't specify HOSTLINE_Token token"
+    _err "Please create you HOSTLINE_Token and try again"
+    return 1
+  fi
+
+  #
+  # condition de verification de la variable HOSTLINE_Ttl
+  # si elle existe on valorise avec la nouvelle valeur
+  if [ -z "$HOSTLINE_Ttl" ]; then
+    HOSTLINE_Ttl="$DEFAULT_HOSTLINE_TTL"
+  fi
+
+  #
+  # ajout de la configuration dans le fichier account.conf
+  _saveaccountconf HOSTLINE_Url "$HOSTLINE_Url"
+  _saveaccountconf HOSTLINE_Token "$HOSTLINE_Token"
+  _saveaccountconf HOSTLINE_Ttl "$HOSTLINE_Ttl"
+  
+
+  #
   # condition de verificiation du domaine racine
-  # si le domaine n'est pas correcte on retour une erreur et on sort en CR1
+  # si le domaine n'est pas correcte on retourne une erreur et on sort en CR1
   _debug "Detect root zone"
   if ! _get_root "$fulldomain"; then
     _err "Invalid domain, please check domain and try again"
@@ -205,7 +229,7 @@ rm_record() {
   #
   # appel aux fonctions
   # si les challenges existes bien on lance la suppression en faisant appel a l'API
-  # si il n'y a pas de challange on ne fait rien
+  # si il n'y a pas de challenge on ne fait rien
   if _contains "$_existing_challenges" "$txtvalue"; then
     #
     # appel a la fonction pour supprimer les challenges dans le domaine
@@ -222,7 +246,7 @@ rm_record() {
     if ! [ "$_existing_challenges" = "$txtvalue" ]; then
       for oldchallenge in $_existing_challenges; do
         #
-        # si il existe encore des challenges on reconstruit l'enregistrement challange pour suppression
+        # si il existe encore des challenges on reconstruit l'enregistrement challenge pour suppression
         if ! [ "$oldchallenge" = "$txtvalue" ]; then
           _build_record_string "$oldchallenge"
         fi
@@ -245,7 +269,7 @@ rm_record() {
 
   else
 
-    # pas de challanges dans le domaine on ne fait rien
+    # pas de challenges dans le domaine on ne fait rien
     _info "Record not found, nothing to remove"
   fi
 
@@ -385,7 +409,7 @@ _build_record_string() {
 _list_existingchallenges() {
 
   #
-  # appel a l'API pour retourner les challanges
+  # appel a l'API pour retourner les challenges
   _hostline_rest "GET" "/api/v1/domain/dns/zones/$root"
 
   #
